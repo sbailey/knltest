@@ -26,9 +26,9 @@ def loopsine_numpy(n=n):
     return np.sum(np.sin(np.arange(n)))
 
 if __name__ == '__main__':
-    t1, r1 = timeit(loopsine_purepy, result=True)
-    t2, r2 = timeit(loopsine_numpy, result=True)
-    t3, r3 = timeit(loopsine_numba, result=True)
+    t1, r1 = timeit(loopsine_purepy, results=True)
+    t2, r2 = timeit(loopsine_numpy, results=True)
+    t3, r3 = timeit(loopsine_numba, results=True)
     assert np.allclose([r1, r2, r3], [r2, r3, r1])
     print('# Seconds to perform sum(sin(range({})))'.format(n))
     print('purepy {:.4f}'.format(t1))
