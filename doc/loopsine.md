@@ -19,6 +19,14 @@ numba  3.0861
 
 ```
 
+desidev
+```
+# Seconds to perform sum(sin(range(10000000)))
+purepy 4.8335
+numpy  0.8912
+numba  0.9479
+```
+
 ## loopsine_mp.py
 
 Not setting OMP_NUM_THREADS; a separate test indicated it didn't matter
@@ -117,4 +125,32 @@ numba   32    4.375   14.629
 purepy  64   14.153    4.522
 numpy   64    4.765   13.430
 numba   64    2.315   27.644
+```
+
+desidev:
+```
+# Testing multiprocessing sum(sin(range(10000000)))
+# Processing 64 batches with ncpu processes
+# method ncpu time     rate
+purepy   1  323.538    0.198
+numpy    1   57.154    1.120
+numba    1   60.283    1.062
+purepy   2  162.677    0.393
+numpy    2   28.551    2.242
+numba    2   26.425    2.422
+purepy   4   81.487    0.785
+numpy    4   14.278    4.482
+numba    4   13.217    4.842
+purepy   8   40.859    1.566
+numpy    8    7.231    8.851
+numba    8    6.610    9.682
+purepy  16   20.462    3.128
+numpy   16    3.682   17.383
+numba   16    3.313   19.320
+purepy  32   10.309    6.208
+numpy   32    1.998   32.031
+numba   32    1.679   38.128
+purepy  64    7.641    8.375
+numpy   64    1.703   37.570
+numba   64    1.620   39.494
 ```
