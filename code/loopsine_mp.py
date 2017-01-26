@@ -19,7 +19,7 @@ x = min(6, np.log2(mp.cpu_count() * 2))
 nargs = 2**int(x)
 
 args = [n,] * nargs
-ncpu = 1
+ncpu = 8
 print("# Testing multiprocessing sum(sin(range({})))".format(n))
 print("# Processing {} batches with ncpu processes".format(len(args)))
 print("# method ncpu time     rate")
