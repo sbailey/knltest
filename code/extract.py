@@ -49,4 +49,4 @@ print('OMP_NUM_THREADS time')
 for n in ntest:
     os.environ['OMP_NUM_THREADS'] = str(n)
     t = knltest.timeit(ex2d, args, kwargs)
-    print("{:3d} {:5.1f}".format(n, t))
+    print("{:3} {:5.1f}".format(n, t))
