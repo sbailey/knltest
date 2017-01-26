@@ -22,10 +22,15 @@ import knltest
 
 parser = optparse.OptionParser(usage = "%prog [options]")
 parser.add_option("-p", "--psf", type=str,  help="input psf file")
-parser.add_option("-n", "--numspec", type=int, default=25, help="number of spectra")
+parser.add_option("-n", "--numspec", type=int, default=100, help="number of spectra")
 parser.add_option("-w", "--numwave", type=int, default=200, help="number of wavelengths")
 
 opts, ntest = parser.parse_args()
+
+#- OMP environment
+os.environ['OMP_PROC_BIND']='spread'
+os.environ['OMP_NUM_THREADS'] = '1'
+# os.environ['OMP_PLACES'] = 'cores("1")'
 
 #- OMP_NUM_THREADS options to test
 if len(ntest) == 0:
@@ -54,14 +59,12 @@ flux, ivar, R = ex2d(image, imageivar, psf, 0, 2, w[0:10])
 def wrap_ex2d(qin, qout):
     while True:
         i, specmin, nspec, wave = qin.get()
-        print('Starting', i, specmin, nspec, wave[0], flush=True)
         results = ex2d(image, imageivar, psf, specmin, nspec, wave)
-        print('Done', i, specmin, nspec, wave[0], flush=True)
         qout.put((i, results))
 
-#- Load qin
+#- Setup sub extractions
 extract_args = list()
-bundlesize = 5
+bundlesize = 25
 wavesize = 50
 iarg = 0
 for specmin in range(0, opts.numspec, bundlesize):
@@ -70,37 +73,40 @@ for specmin in range(0, opts.numspec, bundlesize):
         extract_args.append(x)
         iarg += 1
 
-qin = mp.Queue()
-for x in extract_args:
-    qin.put(x)
-
-#- Start processes
-nproc = 2
-os.environ['OMP_PROC_BIND']='spread'
 print('Running on {}/{} with {} logical cores'.format(
     platform.node(), platform.processor(), mp.cpu_count()))
-print('{} processes doing {} sub extractions'.format(nproc, len(extract_args)))
-print('{} spectra x {} wavelengths extracted'.format(opts.numspec, opts.numwave))
-t0 = time.time()
-qout = mp.Queue()
-procs = list()
-for i in range(nproc):
-    p = mp.Process(target=wrap_ex2d, args=(qin, qout))
-    p.start()
-    procs.append(p)
+print('{} spectra x {} wavelengths to extract'.format(opts.numspec, opts.numwave))
+print('performing {} sub extractions'.format(len(extract_args)))
+print("OMP_NUM_THREADS={}".format(os.getenv('OMP_NUM_THREADS')))
+print('nproc time rate')
+for nproc in ntest:
+    #- Load qin
+    qin = mp.Queue()
+    for x in extract_args:
+        qin.put(x)
 
-#- Pull the expected number of results from qout
-#- Note: not robust to failures, but should be fine for benchmark test
-print('Processes started', time.time() - t0)
-results = list()
-for i in range(len(extract_args)):
-    results.append(qout.get())
+    #- Start processes
+    t0 = time.time()
+    qout = mp.Queue()
+    procs = list()
+    for i in range(int(nproc)):
+        p = mp.Process(target=wrap_ex2d, args=(qin, qout))
+        p.start()
+        procs.append(p)
 
-print('Received results', time.time() - t0)
+    #- Pull the expected number of results from qout
+    #- Note: not robust to failures, but should be fine for benchmark test
+    results = list()
+    for i in range(len(extract_args)):
+        results.append(qout.get())
 
-#- Stop processes
-for p in procs:
-    p.terminate()
+    t = time.time() - t0
+    rate = opts.numspec * opts.numwave / t
+    print("{:3} {:5.1f} {:5.1f}".format(nproc, t, rate), flush=True)
+
+    #- Stop processes
+    for p in procs:
+        p.terminate()
     
 # print('OMP_NUM_THREADS time')
 # for n in ntest:
