@@ -28,7 +28,7 @@ opts, ntest = parser.parse_args()
 
 #- OMP_NUM_THREADS options to test
 if len(ntest) == 0:
-    ntest = (1,2)
+    ntest = (1,4,16,32,64)
 
 #- Load point spread function model
 if opts.psf is None:

@@ -3,11 +3,14 @@
 """
 Test of DESI spectral extraction code with multiprocessing parallelism
 
-srun -n 1 -c 256 --cpu_bind=cores python extract.py 1 4 16 ...
-srun -n 1 -c 32 --cpu_bind=cores python extract.py 1 4 16 32
+batchopts="-C haswell -p debug -t 00:20:00"
+srun -n 1 -c 64 $batchopts python extract-mp.py 1 4 16 32 64 --bundlesize 5 --numwave 50
 """
 
 from __future__ import absolute_import, division, print_function
+import time
+t0 = time.time()
+
 import sys, os
 import platform
 import optparse
@@ -20,21 +23,26 @@ from specter.extract import ex2d
 import specter.psf
 import knltest
 
+t1 = time.time()
+print('wakeup time {:.1f}'.format(t1-t0))
+
 parser = optparse.OptionParser(usage = "%prog [options]")
 parser.add_option("-p", "--psf", type=str,  help="input psf file")
-parser.add_option("-n", "--numspec", type=int, default=100, help="number of spectra")
+# parser.add_option("-n", "--numspec", type=int, default=100, help="number of spectra")
 parser.add_option("-w", "--numwave", type=int, default=200, help="number of wavelengths")
+parser.add_option("-b", "--bundlesize", type=int, default=25, help="size of bundles of spectra")
 
 opts, ntest = parser.parse_args()
 
 #- OMP environment
-os.environ['OMP_PROC_BIND']='spread'
-os.environ['OMP_NUM_THREADS'] = '1'
+# os.environ['OMP_PROC_BIND']='spread'
+# os.environ['OMP_NUM_THREADS'] = '1'
+# os.environ['KNL_NUM_THREADS'] = '1'
 # os.environ['OMP_PLACES'] = 'cores("1")'
 
 #- OMP_NUM_THREADS options to test
 if len(ntest) == 0:
-    ntest = (1,2)
+    ntest = (1,4,16,32,64)
 
 #- Load point spread function model
 if opts.psf is None:
@@ -50,7 +58,7 @@ image = np.random.normal(loc=0, scale=1, size=(ny,nx))
 imageivar = np.ones_like(image)
 
 #- Spectra and wavelengths to extract
-w = np.arange(psf.wmin_all, psf.wmin_all+opts.numwave, 1)
+w = np.linspace(psf.wmin_all, psf.wmax_all, 2000)
 
 #- Wake up the code in case there is library loading overhead
 flux, ivar, R = ex2d(image, imageivar, psf, 0, 2, w[0:10])
@@ -64,25 +72,26 @@ def wrap_ex2d(qin, qout):
 
 #- Setup sub extractions
 extract_args = list()
-bundlesize = 25
-wavesize = 50
 iarg = 0
-for specmin in range(0, opts.numspec, bundlesize):
-    for i in range(0, len(w), wavesize):
-        x = (iarg, specmin, bundlesize, w[i:i+wavesize])
+for specmin in range(0, psf.nspec, opts.bundlesize):
+    for i in range(0, len(w), opts.numwave):
+        x = (iarg, specmin, opts.bundlesize, w[i:i+opts.numwave])
         extract_args.append(x)
         iarg += 1
 
+t2 = time.time()
+print('setup time {:.1f}'.format(t2-t1))
+
 print('Running on {}/{} with {} logical cores'.format(
     platform.node(), platform.processor(), mp.cpu_count()))
-print('{} spectra x {} wavelengths to extract'.format(opts.numspec, opts.numwave))
-print('performing {} sub extractions'.format(len(extract_args)))
+print("bundlesize {} numwave {}".format(opts.bundlesize, opts.numwave))
 print("OMP_NUM_THREADS={}".format(os.getenv('OMP_NUM_THREADS')))
 print('nproc time rate')
 for nproc in ntest:
+    nmax = 2*int(nproc)
     #- Load qin
     qin = mp.Queue()
-    for x in extract_args:
+    for x in extract_args[0:nmax]:
         qin.put(x)
 
     #- Start processes
@@ -97,20 +106,14 @@ for nproc in ntest:
     #- Pull the expected number of results from qout
     #- Note: not robust to failures, but should be fine for benchmark test
     results = list()
-    for i in range(len(extract_args)):
+    for i in range(nmax):
         results.append(qout.get())
 
     t = time.time() - t0
-    rate = opts.numspec * opts.numwave / t
+    rate = nmax * opts.bundlesize * opts.numwave / t
     print("{:3} {:5.1f} {:5.1f}".format(nproc, t, rate), flush=True)
 
     #- Stop processes
     for p in procs:
         p.terminate()
     
-# print('OMP_NUM_THREADS time')
-# for n in ntest:
-#     os.environ['OMP_NUM_THREADS'] = str(n)
-#     os.environ['OMP_PLACES'] = 'cores"({})"'.format(n)
-#     t = knltest.timeit(ex2d, args, kwargs)
-#     print("{:3} {:5.1f}".format(n, t))
