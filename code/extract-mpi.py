@@ -25,20 +25,17 @@ from specter.extract import ex2d
 import specter.psf
 import knltest
 
-if comm.rank == 0:
-    t1 = time.time()
-    print('wakeup time {:.1f}'.format(t1-t0))
-
 comm.barrier()
 if comm.rank == 0:
     t1 = time.time()
-    print('everyone awake time {:.1f}'.format(t1-t0))
+    print('wakeup time {:.1f}'.format(t1-t0))
 
 parser = optparse.OptionParser(usage = "%prog [options]")
 parser.add_option("-p", "--psf", type=str,  help="input psf file")
 parser.add_option("-n", "--numthreads", type=str, default="1", help="set $OMP_NUM_THREADS")
 # parser.add_option("-n", "--numspec", type=int, default=100, help="number of spectra")
 parser.add_option("-w", "--numwave", type=int, default=200, help="number of wavelengths")
+parser.add_option("--fix-total-work", action="store_true", help="Fix the total amount of work instead of work per process")
 parser.add_option("-b", "--bundlesize", type=int, default=25, help="size of bundles of spectra")
 
 opts, ntest = parser.parse_args()
@@ -76,6 +73,7 @@ for specmin in range(0, psf.nspec, opts.bundlesize):
         iarg += 1
 
 #- add comm.barrier() here to make sure everyone is woken up?
+comm.barrier()
 if comm.rank == 0:
     t2 = time.time()
     print('setup time {:.1f}'.format(t2-t1))
@@ -87,13 +85,16 @@ if comm.rank == 0:
     print('Running on {}/{} with {} logical cores'.format(
         platform.node(), platform.processor(), multiprocessing.cpu_count()))
     print("bundlesize {} numwave {}".format(opts.bundlesize, opts.numwave))
-    print('mpiprocs time rate')
+    print('mpiprocs time rate', flush=True)
 
 for nrank in ntest:
     nrank = int(nrank)
-    nmax = 2*nrank
+    if opts.fix_total_work:
+        nmax = 128
+    else:
+        nmax = 2*nrank
     t0 = time.time()
-    if comm.rank < nmax:
+    if comm.rank < nrank:
         for i in range(comm.rank, nmax, nrank):
             iarg, specmin, nspec, wave = extract_args[i]
             results = ex2d(image, imageivar, psf, specmin, nspec, wave, bundlesize=nspec)
