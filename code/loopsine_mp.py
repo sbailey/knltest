@@ -14,15 +14,23 @@ loopsine_numba(2)
 
 n = 10000000
 
+#- KNL is so slow, try a smaller problem...
+# if mp.cpu_count() > 100:
+#     n //= 10
+
 #- Fill up the CPUs with work to do, but don't go crazy
 x = min(6, np.log2(mp.cpu_count() * 2))
 nargs = 2**int(x)
 
 args = [n,] * nargs
-ncpu = 8
+ncpu = 1
+
+if mp.cpu_count() > 100:
+    ncpu = 4
+
 print("# Testing multiprocessing sum(sin(range({})))".format(n))
 print("# Processing {} batches with ncpu processes".format(len(args)))
-print("# method ncpu time     rate")
+print("# method nproc time     rate")
 while ncpu <= nargs:
     pool = mp.Pool(ncpu)
     t1 = timeit(pool.map, (loopsine_purepy, args))
