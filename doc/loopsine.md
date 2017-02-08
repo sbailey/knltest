@@ -32,7 +32,7 @@ numba  0.9479
 Not setting OMP_NUM_THREADS; a separate test indicated it didn't matter
 for this code.
 
-Cori Haswell
+Cori Haswell 128 batches
 ```
 <cori knltest> python code/loopsine_mp.py 
 # Testing multiprocessing sum(sin(range(10000000)))
@@ -61,44 +61,36 @@ numpy   64    1.915   66.844
 numba   64    1.309   97.779
 ```
 
-Cori KNL (but a power of 2 in batches would be better)
+Cori Haswell 64 batches
 ```
-<cori knltest> python code/loopsine_mp.py 
 # Testing multiprocessing sum(sin(range(10000000)))
-# Processing 34 batches with ncpu processes
-# method ncpu time     rate
-purepy   1  385.993    0.088
-numpy    1   73.408    0.463
-numba    1   67.903    0.501
-purepy   2  215.503    0.158
-numpy    2   41.260    0.824
-numba    2   38.752    0.877
-purepy   4  118.360    0.287
-numpy    4   20.002    1.700
-numba    4   17.931    1.896
-purepy   8   67.597    0.503
-numpy    8   13.140    2.587
-numba    8   11.956    2.844
-purepy  16   34.790    0.977
-numpy   16    6.750    5.037
-numba   16    5.998    5.668
-purepy  32   22.717    1.497
-numpy   32    4.955    6.862
-numba   32    3.996    8.508
-purepy  64   14.364    2.367
-numpy   64    3.130   10.863
-numba   64    2.228   15.257
-purepy 128   15.531    2.189
-numpy  128    3.084   11.024
-numba  128    2.245   15.147
-purepy 256   14.499    2.345
-numpy  256    3.146   10.808
-numba  256    2.217   15.336
+# Processing 64 batches with ncpu processes
+# method nproc time     rate
+purepy   1  123.944    0.516
+numpy    1   26.375    2.427
+numba    1   20.911    3.061
+purepy   2   61.902    1.034
+numpy    2   13.333    4.800
+numba    2   10.482    6.106
+purepy   4   31.524    2.030
+numpy    4    6.790    9.425
+numba    4    5.328   12.011
+purepy   8   17.075    3.748
+numpy    8    3.678   17.402
+numba    8    2.931   21.834
+purepy  16    9.738    6.572
+numpy   16    2.234   28.654
+numba   16    1.687   37.931
+purepy  32    7.586    8.437
+numpy   32    1.530   41.821
+numba   32    1.104   57.947
+purepy  64    5.349   11.964
+numpy   64    0.927   69.011
+numba   64    0.638  100.252
 
 ```
 
-Again, with a multiple of 2 (in two jobs since first timed out and had
-to restart at ncpu=8):
+Cori KNL 64 batches
 ```
 <cori knltest> python code/loopsine_mp.py 
 # Testing multiprocessing sum(sin(range(10000000)))
