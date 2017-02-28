@@ -33,7 +33,7 @@ parser.add_option("-p", "--psf", type=str,  help="input psf file")
 # parser.add_option("-n", "--numspec", type=int, default=100, help="number of spectra")
 parser.add_option("-w", "--numwave", type=int, default=200, help="number of wavelengths")
 parser.add_option("-b", "--bundlesize", type=int, default=25, help="size of bundles of spectra")
-parser.add_option("--set-affinity", action='store_true', help="Fix affinity of processes to CPUs")
+parser.add_option("--force-affinity", action='store_true', help="Fix affinity of processes to CPUs")
 
 opts, ntest = parser.parse_args()
 
@@ -100,7 +100,7 @@ for nproc in ntest:
     #- Reset current process CPU affinity to all cores
     x = psutil.Process(os.getpid())
     try:
-        x.set_affinity(list(range(mp.cpu_count())))
+        x.cpu_affinity(list(range(mp.cpu_count())))
     except AttributeError:
         print('WARNING: unable to set cpu_affinity')
 
@@ -111,7 +111,7 @@ for nproc in ntest:
     for i in range(int(nproc)):
         p = mp.Process(target=wrap_ex2d, args=(qin, qout))
         p.start()
-        if opts.set_affinity:
+        if opts.force_affinity:
             x = psutil.Process(p.pid)
             try:
                 x.cpu_affinity([i % mp.cpu_count(),])
