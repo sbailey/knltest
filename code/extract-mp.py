@@ -19,6 +19,8 @@ import time
 
 import numpy as np
 
+import psutil
+
 from specter.extract import ex2d
 import specter.psf
 import knltest
@@ -31,6 +33,7 @@ parser.add_option("-p", "--psf", type=str,  help="input psf file")
 # parser.add_option("-n", "--numspec", type=int, default=100, help="number of spectra")
 parser.add_option("-w", "--numwave", type=int, default=200, help="number of wavelengths")
 parser.add_option("-b", "--bundlesize", type=int, default=25, help="size of bundles of spectra")
+parser.add_option("--set-affinity", action='store_true', help="Fix affinity of processes to CPUs")
 
 opts, ntest = parser.parse_args()
 
@@ -94,6 +97,13 @@ for nproc in ntest:
     for x in extract_args[0:nmax]:
         qin.put(x)
 
+    #- Reset current process CPU affinity to all cores
+    x = psutil.Process(os.getpid())
+    try:
+        x.set_affinity(list(range(mp.cpu_count())))
+    except AttributeError:
+        print('WARNING: unable to set cpu_affinity')
+
     #- Start processes
     t0 = time.time()
     qout = mp.Queue()
@@ -101,6 +111,13 @@ for nproc in ntest:
     for i in range(int(nproc)):
         p = mp.Process(target=wrap_ex2d, args=(qin, qout))
         p.start()
+        if opts.set_affinity:
+            x = psutil.Process(p.pid)
+            try:
+                x.cpu_affinity([i % mp.cpu_count(),])
+            except AttributeError:
+                print('WARNING: not setting CPU affinity for process {}'.format(p.pid))
+
         procs.append(p)
 
     #- Pull the expected number of results from qout
