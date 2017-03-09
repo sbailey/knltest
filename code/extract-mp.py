@@ -66,12 +66,25 @@ w = np.linspace(psf.wmin_all, psf.wmax_all, 2000)
 #- Wake up the code in case there is library loading overhead
 flux, ivar, R = ex2d(image, imageivar, psf, 0, 2, w[0:10])
 
+#- Get CPU that this process is running on
+def get_cpu(pid=None):
+    if pid is None:
+        pid = os.getpid()
+    try:
+        cpu = open("/proc/{pid}/stat".format(pid=os.getpid()), 'rb').read().split()[38]
+    except:
+        cpu = -1
+    return pid, cpu
+
 #- Get params from qin, run ex2d, put results into qout
 def wrap_ex2d(qin, qout):
     while True:
+        orig_cpu = get_cpu()
         i, specmin, nspec, wave = qin.get()
         results = ex2d(image, imageivar, psf, specmin, nspec, wave)
-        qout.put((i, results))
+        final_cpu = get_cpu()
+        qout.put((i, results, orig_cpu, final_cpu))
+
 
 #- Setup sub extractions
 extract_args = list()
@@ -104,19 +117,21 @@ for nproc in ntest:
     except AttributeError:
         print('WARNING: unable to set cpu_affinity')
 
+    # print('CPU affinity {}'.format(x.cpu_affinity()))
+
     #- Start processes
     t0 = time.time()
     qout = mp.Queue()
     procs = list()
     for i in range(int(nproc)):
+        x = psutil.Process(os.getpid())
+        if opts.force_affinity:
+            x.cpu_affinity([i*4,])
+
         p = mp.Process(target=wrap_ex2d, args=(qin, qout))
         p.start()
-        if opts.force_affinity:
-            x = psutil.Process(p.pid)
-            try:
-                x.cpu_affinity([i % mp.cpu_count(),])
-            except AttributeError:
-                print('WARNING: not setting CPU affinity for process {}'.format(p.pid))
+        y = psutil.Process(p.pid)
+        ### print('cpu_affinity {} {} {} {}'.format(x.cpu_affinity(), p.pid, y.cpu_affinity(), get_cpu(p.pid)))
 
         procs.append(p)
 
@@ -128,9 +143,14 @@ for nproc in ntest:
 
     t = time.time() - t0
     rate = nmax * opts.bundlesize * opts.numwave / t
-    print("{:3} {:5.1f} {:5.1f}".format(nproc, t, rate), flush=True)
+    ### print("{:3} {:5.1f} {:5.1f}".format(nproc, t, rate), flush=True)
 
     #- Stop processes
     for p in procs:
         p.terminate()
+
+    #- Print CPU history
+    print('CPU start -> finish for each task')
+    for i, extmp, orig_cpu, final_cpu in results:
+        print(i, orig_cpu, final_cpu)
     
