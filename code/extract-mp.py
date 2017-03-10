@@ -24,6 +24,7 @@ import psutil
 from specter.extract import ex2d
 import specter.psf
 import knltest
+from knltest import get_cpu
 
 t1 = time.time()
 print('wakeup time {:.1f}'.format(t1-t0))
@@ -66,24 +67,20 @@ w = np.linspace(psf.wmin_all, psf.wmax_all, 2000)
 #- Wake up the code in case there is library loading overhead
 flux, ivar, R = ex2d(image, imageivar, psf, 0, 2, w[0:10])
 
-#- Get CPU that this process is running on
-def get_cpu(pid=None):
-    if pid is None:
-        pid = os.getpid()
-    try:
-        cpu = open("/proc/{pid}/stat".format(pid=os.getpid()), 'rb').read().split()[38]
-    except:
-        cpu = -1
-    return pid, cpu
-
 #- Get params from qin, run ex2d, put results into qout
-def wrap_ex2d(qin, qout):
+def wrap_ex2d(icpu, qin, qout):
+    p = psutil.Process(os.getpid())
+    p.cpu_affinity([icpu,])
     while True:
         orig_cpu = get_cpu()
         i, specmin, nspec, wave = qin.get()
-        results = ex2d(image, imageivar, psf, specmin, nspec, wave)
+        ### results = ex2d(image, imageivar, psf, specmin, nspec, wave)
+        A = np.random.uniform(size=(500,500))
+        results = np.linalg.svd(A.T.dot(A))
+        # results = 1
+        # time.sleep(np.random.uniform(0,1))
         final_cpu = get_cpu()
-        qout.put((i, results, orig_cpu, final_cpu))
+        qout.put((i, results, icpu, orig_cpu, final_cpu))
 
 
 #- Setup sub extractions
@@ -124,15 +121,13 @@ for nproc in ntest:
     qout = mp.Queue()
     procs = list()
     for i in range(int(nproc)):
+        icpu = i*4 + 1
         x = psutil.Process(os.getpid())
-        if opts.force_affinity:
-            x.cpu_affinity([i*4,])
+        # if opts.force_affinity:
+        #     x.cpu_affinity([icpu,])
 
-        p = mp.Process(target=wrap_ex2d, args=(qin, qout))
+        p = mp.Process(target=wrap_ex2d, args=(icpu, qin, qout))
         p.start()
-        y = psutil.Process(p.pid)
-        ### print('cpu_affinity {} {} {} {}'.format(x.cpu_affinity(), p.pid, y.cpu_affinity(), get_cpu(p.pid)))
-
         procs.append(p)
 
     #- Pull the expected number of results from qout
@@ -151,6 +146,6 @@ for nproc in ntest:
 
     #- Print CPU history
     print('CPU start -> finish for each task')
-    for i, extmp, orig_cpu, final_cpu in results:
-        print(i, orig_cpu, final_cpu)
+    for i, extmp, icpu, orig_cpu, final_cpu in results:
+        print(i, icpu, orig_cpu, final_cpu)
     
