@@ -16,7 +16,7 @@ def timeit(function, A):
     return t1-t0
 
 Ax = list()
-for n in [100,200,500,1000,2000]:
+for n in [100,200,500,1000,2000,3000,4000]:
     X = np.random.uniform(size=(n,n))
     Ax.append(X.T.dot(X))
 
