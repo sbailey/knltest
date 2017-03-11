@@ -35,9 +35,9 @@ flux, ivar, R = ex2d(image, imageivar, psf, 0, 2, w[0:10])
 
 #- Do extractions, while modeling edge effects that would be needed when
 #- doing smaller bundle sizes (i.e. nspec+2)
-print('nwave nflux ntot rate')
-for nspec in [2,5,10]:
-    for nwave in [5,10,20]:
+print('nspec nwave ntot rate')
+for nspec in [2,5,10,20,25]:
+    for nwave in [5,10,20,50]:
         args = (image, imageivar, psf, 0, (nspec+2)*2, w[0:nwave*2])
         kwargs = dict(bundlesize=nspec+2, wavesize=nwave)
         t = knltest.timeit(ex2d, args, kwargs)
