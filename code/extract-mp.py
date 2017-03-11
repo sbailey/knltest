@@ -74,9 +74,9 @@ def wrap_ex2d(icpu, qin, qout):
     while True:
         orig_cpu = get_cpu()
         i, specmin, nspec, wave = qin.get()
-        ### results = ex2d(image, imageivar, psf, specmin, nspec, wave)
-        A = np.random.uniform(size=(500,500))
-        results = np.linalg.svd(A.T.dot(A))
+        results = ex2d(image, imageivar, psf, specmin, nspec, wave)
+        # A = np.random.uniform(size=(500,500))
+        # results = np.linalg.svd(A.T.dot(A))
         # results = 1
         # time.sleep(np.random.uniform(0,1))
         final_cpu = get_cpu()
@@ -108,9 +108,10 @@ for nproc in ntest:
         qin.put(x)
 
     #- Reset current process CPU affinity to all cores
-    x = psutil.Process(os.getpid())
+    # x = psutil.Process(os.getpid())
     try:
-        x.cpu_affinity(list(range(mp.cpu_count())))
+        # x.cpu_affinity(list(range(mp.cpu_count())))
+        pass
     except AttributeError:
         print('WARNING: unable to set cpu_affinity')
 
@@ -121,8 +122,9 @@ for nproc in ntest:
     qout = mp.Queue()
     procs = list()
     for i in range(int(nproc)):
-        icpu = i*4 + 1
-        x = psutil.Process(os.getpid())
+        # icpu = i*4 + 1
+        icpu = i
+        # x = psutil.Process(os.getpid())
         # if opts.force_affinity:
         #     x.cpu_affinity([icpu,])
 
@@ -138,14 +140,14 @@ for nproc in ntest:
 
     t = time.time() - t0
     rate = nmax * opts.bundlesize * opts.numwave / t
-    ### print("{:3} {:5.1f} {:5.1f}".format(nproc, t, rate), flush=True)
+    print("{:3} {:5.1f} {:5.1f}".format(nproc, t, rate), flush=True)
 
     #- Stop processes
     for p in procs:
         p.terminate()
 
     #- Print CPU history
-    print('CPU start -> finish for each task')
-    for i, extmp, icpu, orig_cpu, final_cpu in results:
-        print(i, icpu, orig_cpu, final_cpu)
+    # print('CPU start -> finish for each task')
+    # for i, extmp, icpu, orig_cpu, final_cpu in results:
+    #     print(i, icpu, orig_cpu, final_cpu)
     
