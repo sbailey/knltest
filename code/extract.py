@@ -51,13 +51,11 @@ kwargs = dict(specmin=0, nspec=opts.numspec, wavelengths=w)
 #- Wake up the code in case there is library loading overhead
 flux, ivar, R = ex2d(image, imageivar, psf, 0, 2, w[0:10])
 
-os.environ['OMP_PROC_BIND']='spread'
 print('Running on {}/{} with {} logical cores'.format(
     platform.node(), platform.processor(), multiprocessing.cpu_count()))
 print('{} spectra x {} wavelengths extracted'.format(opts.numspec, opts.numwave))
 print('OMP_NUM_THREADS time')
 for n in ntest:
     os.environ['OMP_NUM_THREADS'] = str(n)
-    os.environ['OMP_PLACES'] = 'cores"({})"'.format(n)
     t = knltest.timeit(ex2d, args, kwargs)
     print("{:3} {:5.1f}".format(n, t), flush=True)

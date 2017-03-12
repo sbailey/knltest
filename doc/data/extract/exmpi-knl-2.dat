@@ -1,0 +1,9 @@
+# Running on nid08241/x86_64 with 272 logical cores
+# bundlesize 5 numwave 50
+nproc time rate wakeup setup
+  1   9.5  52.6  11.3  12.2
+  4  10.2 196.8  16.1  12.3
+ 16  10.2 780.8  40.4  12.4
+ 64  11.5 2776.6  142.8 15.4
+128  19.8 3228.5  288.9 26.1
+# 256 timed out, then ran out of memory

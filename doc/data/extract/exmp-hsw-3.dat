@@ -1,0 +1,12 @@
+# wakeup time 4.3
+# setup time 1.7
+# Running on nid00031/x86_64 with 64 logical cores
+# bundlesize 25 numwave 50
+# OMP_NUM_THREADS=1
+nproc time rate
+1    10.3 241.8
+4    11.8 850.7
+16   18.5 2165.0
+32   18.5 4324.3
+64   36.7 4355.4
+
