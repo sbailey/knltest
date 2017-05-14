@@ -22,12 +22,15 @@ parser = optparse.OptionParser(usage = "%prog [options]")
 parser.add_option("-p", "--psf", type=str,  help="input psf file")
 parser.add_option("--nwavestep", type=int, default=50, help="number of wavelengths per extraction step")
 parser.add_option("--numwave", type=int, default=200, help="number of wavelengths total")
+parser.add_option("--seed", type=int, default=0, help="random seed")
 
 opts, nspec = parser.parse_args()
 
 #- OMP_NUM_THREADS options to test
 if len(nspec) == 0:
     nspec = (5, 10, 15, 20, 25)
+else:
+    nspec = [int(tmp) for tmp in nspec]
 
 #- Load point spread function model
 if opts.psf is None:
@@ -38,6 +41,7 @@ if opts.psf is None:
 psf = specter.psf.load_psf(opts.psf)
 
 #- Create fake noisy image
+np.random.seed(opts.seed)
 ny, nx = psf.npix_y, psf.npix_x
 image = np.random.normal(loc=0, scale=1, size=(ny,nx))
 imageivar = np.ones_like(image)
