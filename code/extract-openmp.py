@@ -10,28 +10,29 @@ srun -n 1 -c 32 --cpu_bind=cores python extract.py 1 4 16 32
 from __future__ import absolute_import, division, print_function
 import sys, os
 import platform
-import time
 import optparse
+import multiprocessing
 
 import numpy as np
 
 from specter.extract import ex2d
 import specter.psf
+import knltest
 
 parser = optparse.OptionParser(usage = "%prog [options]")
 parser.add_option("-p", "--psf", type=str,  help="input psf file")
-parser.add_option("--nwavestep", type=int, default=50, help="number of wavelengths per extraction step")
-parser.add_option("--numwave", type=int, default=200, help="number of wavelengths total")
+parser.add_option("-n", "--numspec", type=int, default=25, help="number of spectra")
+parser.add_option("-w", "--numwave", type=int, default=200, help="number of wavelengths")
 
-opts, nspec = parser.parse_args()
+opts, ntest = parser.parse_args()
 
 #- OMP_NUM_THREADS options to test
-if len(nspec) == 0:
-    nspec = (5, 10, 15, 20, 25)
+if len(ntest) == 0:
+    ntest = (1,4,16,32,64)
 
 #- Load point spread function model
 if opts.psf is None:
-    thisdir = os.path.split(os.path.abspath(__file__))[0]
+    thisdir = os.path.split(knltest.__file__)[0]
     opts.psf = thisdir + '/../etc/psfnight-r0.fits'
     assert os.path.exists(opts.psf)
     
@@ -43,21 +44,18 @@ image = np.random.normal(loc=0, scale=1, size=(ny,nx))
 imageivar = np.ones_like(image)
 
 #- Spectra and wavelengths to extract
-wave = np.arange(psf.wmin_all, psf.wmin_all+opts.numwave, 1)
+w = np.arange(psf.wmin_all, psf.wmin_all+opts.numwave, 1)
+args = [image, imageivar, psf]
+kwargs = dict(specmin=0, nspec=opts.numspec, wavelengths=w)
 
 #- Wake up the code in case there is library loading overhead
-flux, ivar, R = ex2d(image, imageivar, psf, 0, 2, wave[0:10])
+flux, ivar, R = ex2d(image, imageivar, psf, 0, 2, w[0:10])
 
-print('Running on {}/{}'.format(
-    platform.node(), platform.processor()))
-if 'OMP_NUM_THREADS' not in os.environ:
-    print('$OMP_NUM_THREADS not set')
-else:
-    print('$OMP_NUM_THREADS={}'.format(os.getenv('OMP_NUM_THREADS')))
-print('nspec  rate')
-for n in nspec:
-    t0 = time.time()
-    flux, ivar, R = ex2d(image, imageivar, psf, 0, n, wave, wavesize=opts.nwavestep)
-    dt = time.time() - t0
-    rate = n*len(wave) / dt
-    print("{:3}  {:5.1f}".format(n, rate), flush=True)
+print('Running on {}/{} with {} logical cores'.format(
+    platform.node(), platform.processor(), multiprocessing.cpu_count()))
+print('{} spectra x {} wavelengths extracted'.format(opts.numspec, opts.numwave))
+print('OMP_NUM_THREADS time')
+for n in ntest:
+    os.environ['OMP_NUM_THREADS'] = str(n)
+    t = knltest.timeit(ex2d, args, kwargs)
+    print("{:3} {:5.1f}".format(n, t), flush=True)
