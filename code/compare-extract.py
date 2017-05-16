@@ -91,9 +91,9 @@ dt = 100*(ref1['runtime'] - ref2['runtime']) / ref1['runtime']
 if np.abs(dt) < 1:
     print('Same runtime')
 elif dt < 0:
-    print('Runtime {:.0f}% faster'.format(-dt))
+    print('Runtime {:.0f}% slower'.format(-dt))
 else:
-    print('Runtime {:.0f}% slower'.format(dt))
+    print('Runtime {:.0f}% faster'.format(dt))
 
 print('Comparing results:')
 print('key   exact  close')
