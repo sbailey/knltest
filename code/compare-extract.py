@@ -24,10 +24,11 @@ def get_current_results():
 
     #- Spectra and wavelengths to extract
     nspec = 10
-    wave = np.arange(psf.wmin_all, psf.wmin_all+200, 1)
+    nwave = 1000
+    wave = np.arange(psf.wmin_all, psf.wmin_all+nwave, 1)
 
-    #- Wake up code
-    flux, ivar, R = ex2d(image, imageivar, psf, 0, nspec, wave)
+    #- Wake up code, but using a different spectral range
+    flux, ivar, R = ex2d(image, imageivar, psf, nspec, nspec, wave[0:10])
 
     #- Now do it for real
     t0 = time.time()
