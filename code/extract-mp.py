@@ -19,7 +19,7 @@ import time
 
 import numpy as np
 
-import psutil
+# import psutil
 
 from specter.extract import ex2d
 import specter.psf
@@ -69,8 +69,8 @@ flux, ivar, R = ex2d(image, imageivar, psf, 0, 2, w[0:10])
 
 #- Get params from qin, run ex2d, put results into qout
 def wrap_ex2d(icpu, qin, qout):
-    p = psutil.Process(os.getpid())
-    p.cpu_affinity([icpu,])
+    # p = psutil.Process(os.getpid())
+    # p.cpu_affinity([icpu,])
     while True:
         orig_cpu = get_cpu()
         i, specmin, nspec, wave = qin.get()

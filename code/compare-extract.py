@@ -24,7 +24,7 @@ def get_current_results():
 
     #- Spectra and wavelengths to extract
     nspec = 10
-    nwave = 1000
+    nwave = 300
     wave = np.arange(psf.wmin_all, psf.wmin_all+nwave, 1)
 
     #- Wake up code, but using a different spectral range
