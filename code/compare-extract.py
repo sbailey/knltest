@@ -83,18 +83,34 @@ else:
     ref2 = np.load(reffiles[1])
     
 
-if ref1['nspec'] != ref2['nspec'] or \
-    not np.all(ref1['wave'] == ref2['wave']) \
-    or ref1['flux'].shape != ref2['flux'].shape:
-        raise RuntimeError('Different extraction parameters')
+err = False
+if ref1['nspec'] != ref2['nspec']:
+    print('ERROR: nspec {} != {}'.format(ref1['nspec'], ref2['nspec']))
+    err = True
 
-dt = 100*(ref1['runtime'] - ref2['runtime']) / ref1['runtime']
-if np.abs(dt) < 1:
+if not np.allclose(ref1['wave'], ref2['wave']):
+    print('ERROR: wave {}-{} != {}-{}'.format(
+        ref1['wave'][[0,-1]], ref2['wave'][[0,-1]]))
+    err = True
+    
+if ref1['flux'].shape != ref2['flux'].shape:
+    print('ERROR: flux.shape {} != {}'.format(
+        ref1['flux'].shape, ref2['flux'].shape))
+    err = True
+
+if err:
+    sys.exit(1)
+
+tx = ref2['runtime'] / ref1['runtime']
+if np.abs(tx-1) < 0.01:
     print('Same runtime')
-elif dt < 0:
-    print('Runtime {:.0f}% slower'.format(-dt))
+elif tx<1:
+    tx = ref1['runtime'] / ref2['runtime']
+    print('Runtime {:0.1f}x faster: {:.1f} -> {:.1f} sec'.format(
+        tx, float(ref1['runtime']), float(ref2['runtime'])))
 else:
-    print('Runtime {:.0f}% faster'.format(dt))
+    print('Runtime {:.1f}x slower: {:.1f} -> {:.1f} sec'.format(
+        tx, float(ref1['runtime']), float(ref2['runtime'])))
 
 print('Comparing results:')
 print('key   exact  close')
