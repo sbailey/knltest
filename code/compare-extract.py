@@ -12,7 +12,7 @@ import numpy as np
 from specter.extract import ex2d
 import specter.psf
 
-def get_current_results():
+def get_current_results(nspec, nwave):
     thisdir = os.path.split(os.path.abspath(__file__))[0]
     psffile = thisdir + '/../etc/psfnight-r0.fits'
     psf = specter.psf.load_psf(psffile)
@@ -23,8 +23,6 @@ def get_current_results():
     imageivar = np.ones_like(image)
 
     #- Spectra and wavelengths to extract
-    nspec = 10
-    nwave = 300
     wave = np.arange(psf.wmin_all, psf.wmin_all+nwave, 1)
 
     #- Wake up code, but using a different spectral range
@@ -60,7 +58,8 @@ Compare two previously saved reference results:
 '''
 
 parser = optparse.OptionParser(usage = "%prog [options]")
-# parser.add_option("-i", "--input", type=str,  help="input data")
+parser.add_option("--nspec", type=int, default=10, help="number of spectra")
+parser.add_option("--nwave", type=int, default=1000, help="number of wavelengths")
 parser.add_option("-o", "--output", type=str,  help="output results for current extractions")
 # parser.add_option("-v", "--verbose", action="store_true", help="some flag")
 
@@ -68,13 +67,13 @@ opts, reffiles = parser.parse_args()
 
 if len(reffiles) == 0:
     assert opts.output is not None
-    results = get_current_results()
+    results = get_current_results(opts.nspec, opts.nwave)
     print('Saving results to {}'.format(opts.output))
     np.savez(opts.output, **results)
     sys.exit(0)
 elif len(reffiles) == 1:
     ref1 = np.load(reffiles[0])
-    ref2 = get_current_results()
+    ref2 = get_current_results(opts.nspec, opts.nwave)
     if opts.output is not None:
         print('Saving results to {}'.format(opts.output))
         np.savez(opts.output, **ref2)
@@ -88,7 +87,8 @@ if ref1['nspec'] != ref2['nspec']:
     print('ERROR: nspec {} != {}'.format(ref1['nspec'], ref2['nspec']))
     err = True
 
-if not np.allclose(ref1['wave'], ref2['wave']):
+if (ref1['wave'].shape != ref2['wave'].shape) or \
+        not np.allclose(ref1['wave'], ref2['wave']):
     print('ERROR: wave {}-{} != {}-{}'.format(
         ref1['wave'][[0,-1]], ref2['wave'][[0,-1]]))
     err = True
@@ -106,10 +106,10 @@ if np.abs(tx-1) < 0.01:
     print('Same runtime')
 elif tx<1:
     tx = ref1['runtime'] / ref2['runtime']
-    print('Runtime {:0.1f}x faster: {:.1f} -> {:.1f} sec'.format(
+    print('Runtime {:0.2f}x faster: {:.1f} -> {:.1f} sec'.format(
         tx, float(ref1['runtime']), float(ref2['runtime'])))
 else:
-    print('Runtime {:.1f}x slower: {:.1f} -> {:.1f} sec'.format(
+    print('Runtime {:.2f}x slower: {:.1f} -> {:.1f} sec'.format(
         tx, float(ref1['runtime']), float(ref2['runtime'])))
 
 print('Comparing results:')
