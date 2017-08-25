@@ -107,6 +107,9 @@ knl   64     128    408
 knl   64     256    598
 ```
 
+![redshift rate vs. cores](orig_rate_vs_cores.png)
+![redshift rate vs. number of targets](orig_rate_vs_ntargets.png)
+
 ## Warnings on KNL
 
 These appeared only on KNL runs, not Haswell runs, and should be investigated.
