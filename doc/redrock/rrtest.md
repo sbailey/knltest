@@ -2,41 +2,58 @@
 
 ## Initial setup
 
+Create basic conda environment
+```
 module load python/3.5-anaconda
 conda create -n rrtest python=3 numpy scipy astropy numba ipython matplotlib hdf5
 source activate rrtest
+```
 
-#- non-conda dependencies
+Add non-conda dependencies
+```
 cd $SCRATCH/rrtest
 pip install speclite
 for x in desiutil desispec; do
     git clone https://github.com/desihub/$x
     cd $x && python setup.py install && cd ..
 done
+```
 
-#- redrock & redrock templates
+Install redrock & redrock templates
+```
 git clone https://github.com/desihub/redrock-templates
 export RR_TEMPLATE_DIR=$(pwd)/redrock-templates
 git clone https://github.com/desihub/redrock
 cd redrock
-git checkout sharedmem
 python setup.py develop
 cd ..
+```
 
-#- get spectra-64-4674.fits
+Get some test data
+```
+wget http://portal.nersc.gov/project/desi/users/sjbailey/austin/spectra-64-4674.fits
+```
 
 ## Basic setup
 
+After doing the initial setup once, this is what you need to run whenever
+starting a new shell:
+```
 module load python/3.5-anaconda
 source activate rrtest
 export RR_TEMPLATE_DIR=$SCRATCH/rrtest/redrock-templates
 cd $SCRATCH/rrtest
+```
 
-## Job script
+## Example job scripts for benchmarks
+
+Getting interactive nodes on cori:
+```
 salloc -N 1 -C haswell --qos interactive -t 1:00:00
 salloc -N 1 -C knl --qos interactive -t 1:00:00
+```
 
-Haswell options
+Running on Haswell:
 ```
 #- NOTE: not setting OMP_PLACES and OMP_PROC_BIND has best performance
 OMP_PLACES=sockets is ok, but cores or threads is 3-4x worse
@@ -68,6 +85,8 @@ time rrdesi spectra-64-4674.fits --zbest foo.fits --ncpu 64 --ntarget 64
 time rrdesi spectra-64-4674.fits --zbest foo.fits --ncpu 128 --ntarget 64
 ```
 
+## Results
+
 ```
 cpu   ncpu   ntarg  time
 hsw   4      64     123
@@ -88,7 +107,9 @@ knl   64     128    408
 knl   64     256    598
 ```
 
-Only on KNL:
+## Warnings on KNL
+
+These appeared only on KNL runs, not Haswell runs, and should be investigated.
 ```
 <cori rrtest> time rrdesi spectra-64-4674.fits --zbest foo.fits --ncpu 16 --ntarget 64
 /global/cscratch1/sd/sjbailey/rrtest/redrock/py/redrock/dataobj.py:161: RuntimeWarning: divide by zero encountered in true_divide
@@ -101,5 +122,6 @@ but this earlier line didn't cause a warning:
 ```
 flux = weightedflux / (weights + isbad)
 ```
-TODO: check KNL vs. HSW outputs for consistency despite that message
+
+**TODO**: check KNL vs. HSW outputs for consistency despite that message
 
