@@ -1,5 +1,11 @@
 # Testing redrock
 
+These notes document the initial redrock scaling tests performed on NERSC
+Cori during August 2017.
+
+Stephen Bailey<hr/>
+Lawrence Berkeley National Lab
+
 ## Initial setup
 
 Create basic conda environment
